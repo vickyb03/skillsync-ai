@@ -4,44 +4,28 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/')
-def home():
-    return "SkillSync AI Backend Running 🚀"
+# 🎯 Skill Database
+roles = {
+    "frontend": ["html", "css", "javascript", "react"],
+    "backend": ["python", "flask", "sql", "api"]
+}
 
-@app.route('/analyze', methods=['POST'])
+@app.route("/analyze", methods=["POST"])
 def analyze():
-    data = request.json
-    text = data.get("input", "").lower()
-    link = data.get("link", "").lower()
-    role = data.get("role", "backend")
+    data = request.get_json()
 
-    # Role-based skills
-    roles = {
-        "backend": ["python", "flask", "api", "sql"],
-        "frontend": ["html", "css", "javascript", "react"],
-        "data": ["python", "sql", "excel", "powerbi"]
-    }
+    user_input = data.get("input", "").lower()
+    role = data.get("role", "frontend")
 
-    job_skills = roles.get(role, [])
+    user_skills = user_input.split()
+    required_skills = roles.get(role, [])
 
-    # Simulated link extraction
-    if "coursera" in link:
-        text += " python sql machine learning"
-    elif "linkedin" in link:
-        text += " python flask api communication"
+    matched = [skill for skill in user_skills if skill in required_skills]
+    missing = [skill for skill in required_skills if skill not in user_skills]
 
-    # Matching
-    matched = [s for s in job_skills if s in text]
-    missing = list(set(job_skills) - set(matched))
+    score = int((len(matched) / len(required_skills)) * 100) if required_skills else 0
 
-    # Weighted scoring
-    weights = {s: 2 for s in job_skills}
-    total_weight = sum(weights.values())
-    matched_weight = sum(weights[s] for s in matched)
-
-    score = int((matched_weight / total_weight) * 100) if total_weight else 0
-
-    # Skill level
+    # 🎯 Level logic
     if score >= 80:
         level = "Advanced"
     elif score >= 50:
@@ -49,16 +33,16 @@ def analyze():
     else:
         level = "Beginner"
 
-    # Suggestions
-    suggestions = [f"Learn {s}" for s in missing]
+    suggestions = ", ".join(missing) if missing else "No suggestions"
 
     return jsonify({
         "score": score,
+        "level": level,
         "skills": matched,
         "missing": missing,
-        "level": level,
         "suggestions": suggestions
     })
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app.run(debug=True)
